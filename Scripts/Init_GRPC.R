@@ -1,4 +1,4 @@
-setwd("~/LEPC")
+setwd("~/GRPC")
 
 require(tidyverse)
 require(lubridate)
@@ -12,7 +12,7 @@ require(magrittr)
 
 # the original list, from "random LTRE LL gpc.r" :
 # SM_vitalrates<- list(
-#   SMnest = 0.86,
+#   SMnest = 0.86
 #   SMrenest  =  0.4,
 #   SMtcl1    =  13.4,
 #   SMtcl2    =  10.8,
@@ -27,11 +27,13 @@ require(magrittr)
 #   SMsy      =  0.34,
 #   SMsa      =  0.42)
 
-# TOD0 -- 
-# nest and renest should equal 1.0?
+# NOTE N.Prob (old: SMnest) and Re.N.Prob (old: SMrenest) are here set to 1
 
-N.Prob = 0.86		# nesting probability per female
-Re.N.Prob = 0.4		# re-nesting probability per female
+N.Prob = 1		# nesting probability per female
+Re.N.Prob = 1	# re-nesting probability per female
+
+# N.Prob = 0.86		# nesting probability per female
+# Re.N.Prob = 0.4		# re-nesting probability per female
 
 C.1.Size = 13.4		# clutch size (#eggs) per first nest
 C.2.Size = 10.8		# clutch size (#eggs) per second nest
@@ -112,9 +114,26 @@ leks <- read.csv("Data/lek_metadata.csv",
 				 			  "character"),
 				 stringsAsFactors=FALSE)
 
+leks$date <- mdy(leks$date)
 leks$n.tot[leks$n.tot=="#VALUE!"] <- NA
 leks$n.m[leks$n.m=="#VALUE!"] <- NA
 leks$n.f[leks$n.f=="#VALUE!"] <- NA
+
+leks$n.tot <- as.numeric(leks$n.tot)
+leks$n.m <- as.numeric(leks$n.m)
+leks$n.f <- as.numeric(leks$n.f)
+# Lek count data (follow Winder et al. 2015)
+# Applied to both sexes
+
+# (a) find the mean trap vs. flush coefficient for total pop sizes
+trap_v_flush <- leks %>%
+					group_by(trapped, id, year(date)) %>%
+					summarise(max.m = max(n.m, na.rm=TRUE),
+							  max.f = max(n.f, na.rm=TRUE))
+
+males <- leks %>%
+			group_by(id, year(date)) %>%
+			summarise(max.m = max(n.m, na.rm=TRUE))
 
 counts <- leks %>%
 			mutate(n.tot = as.numeric(n.tot),
@@ -133,3 +152,4 @@ counts <- leks %>%
 # Find max number of males during trap vs. flush for each lek per year
 # Discount Flush counts to equalize
 # calculate weighted mean given number of visits of each kind
+
