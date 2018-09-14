@@ -1,6 +1,6 @@
 setwd("~/GRPC")
 
-require(tidyverse)
+require(dplyr)
 require(lubridate)
 require(magrittr)
 
@@ -114,7 +114,7 @@ leks <- read.csv("Data/lek_metadata.csv",
 				 			  "character"),
 				 stringsAsFactors=FALSE)
 
-leks$date <- mdy(leks$date)
+leks$date <- year(mdy(leks$date))
 leks$n.tot[leks$n.tot=="#VALUE!"] <- NA
 leks$n.m[leks$n.m=="#VALUE!"] <- NA
 leks$n.f[leks$n.f=="#VALUE!"] <- NA
@@ -125,15 +125,26 @@ leks$n.f <- as.numeric(leks$n.f)
 # Lek count data (follow Winder et al. 2015)
 # Applied to both sexes
 
-# (a) find the mean trap vs. flush coefficient for total pop sizes
-trap_v_flush <- leks %>%
-					group_by(trapped, id, year(date)) %>%
-					summarise(max.m = max(n.m, na.rm=TRUE),
-							  max.f = max(n.f, na.rm=TRUE))
+# (a) find the mean trap vs. flush coefficient for ACROSS MALES AND FEMALES
+# TODO there appear to be too many 0 values for a reasonable adjustment coeff for females
+# 			is there a better strategy (perhaps absolute difference rather than ratio?)
+#			AND why are these values different than those obtained in Winder et al. 2015 (90 +- 3%)
+#				simply because that was a male-only value? A male only value with the same method here
+#				still gives a different value (mean: flush=trap*92.2%*, sd=5.25%)
 
-males <- leks %>%
-			group_by(id, year(date)) %>%
-			summarise(max.m = max(n.m, na.rm=TRUE))
+
+# TODO SWITCH TO N-MIXING model from Ross et al 2016?
+flush_v_trap <- leks %>%
+					group_by(trapped, id, date) %>%
+					summarise(n.max= max(n.tot, na.rm=TRUE)) %>%
+					spread(trapped, n.max) %>%
+					setNames(c("id", "date", "flush", "trap")) %>%
+					subset(flush != -Inf & trap != -Inf) %>%
+					mutate(f_v_t = flush/trap) %>%
+					subset(f_v_t != -Inf) %>%
+					ungroup() %>%
+					summarise(mean=mean(f_v_t), sd=sd(f_v_t))
+
 
 counts <- leks %>%
 			mutate(n.tot = as.numeric(n.tot),
