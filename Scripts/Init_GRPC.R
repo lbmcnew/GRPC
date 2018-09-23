@@ -1,8 +1,10 @@
-setwd("~/GRPC")
+# setwd("~/GRPC")
+setwd("C://Users//Liam//Documents//GRPC") 
 
-require(dplyr)
+require(tidyverse)
 require(lubridate)
 require(magrittr)
+require(jagsUI)
 
 # --------------------------------
 # Initialize matrix vital rates
@@ -83,7 +85,7 @@ evs <- eigen(A.MAT)
 
 # LAMBDA
 imax <- which.max(evs$values)
-lambda <- Re(evs$values[imax])
+LAMBDA.VR <- Re(evs$values[imax])
 
 
 # --------------------------------
@@ -122,45 +124,92 @@ leks$n.f[leks$n.f=="#VALUE!"] <- NA
 leks$n.tot <- as.numeric(leks$n.tot)
 leks$n.m <- as.numeric(leks$n.m)
 leks$n.f <- as.numeric(leks$n.f)
-# Lek count data (follow Winder et al. 2015)
-# Applied to both sexes
 
-# (a) find the mean trap vs. flush coefficient for ACROSS MALES AND FEMALES
-# TODO there appear to be too many 0 values for a reasonable adjustment coeff for females
-# 			is there a better strategy (perhaps absolute difference rather than ratio?)
-#			AND why are these values different than those obtained in Winder et al. 2015 (90 +- 3%)
-#				simply because that was a male-only value? A male only value with the same method here
-#				still gives a different value (mean: flush=trap*92.2%*, sd=5.25%)
+# Lek count data (broadly following Winder et al. 2015)
+# (1) Find discount ratio for non sex-ratio counts (includes both trap and flush counts) 
+#		from sex-ratio counts (includes both trap and flush counts)
+# (2) Discount all the counts (trap and flush) that don't have sex-differentiation
+# (3) Find the NUMBER OF COUNTS of each type for each LEK and YEAR
+# (4) Find the maximum count (post-discount) of each type for each year
+# (5) Calculated a weighted mean for max trap and flush counts by the proportion of each count type
+# (6) Convert to female counts [currently n.m = n.f]
+# (7) Assemble female count matrix
+# (8) Calculate population size across all leks, and proportion of leks surveyed
+
+# (1)
+sex_ratio_discount <- leks %>%
+						subset(!is.na(n.f) & !is.na(n.m)) %>%			# take the counts that have m/f differentiation
+						transmute(coeff = n.m / n.tot) %>%				# calculate the male representation
+						summarise(mean = mean(coeff, na.rm=TRUE), 		# remove zero counts (which give a NaN ratio)
+								  sd = sd(coeff, na.rm=TRUE))			# summarize coefficient values
+
+discount <- function(n.tot, n.m) {
+	adjustedCount <- n.m
+	coeff <- sex_ratio_discount$mean
+
+	if (is.na(n.m)) {								# if n.m is NOT N/A (i.e., there was a sex count), just keep the count
+		adjustedCount <- (n.tot * coeff)			
+	} 
+
+	return(adjustedCount)
+}
+
+# (2)
+adjusted_male_counts <- leks %>%
+							select(trapped, id, date, n.tot, n.m) %>% 
+							mutate(adjusted.n.m = pmap_dbl(list(n.tot, n.m), discount))	# discounts at every row
 
 
-# TODO SWITCH TO N-MIXING model from Ross et al 2016?
-flush_v_trap <- leks %>%
-					group_by(trapped, id, date) %>%
-					summarise(n.max= max(n.tot, na.rm=TRUE)) %>%
-					spread(trapped, n.max) %>%
-					setNames(c("id", "date", "flush", "trap")) %>%
-					subset(flush != -Inf & trap != -Inf) %>%
-					mutate(f_v_t = flush/trap) %>%
-					subset(f_v_t != -Inf) %>%
+# (3)
+count_numbers <- adjusted_male_counts %>%
+					group_by(id, date, trapped) %>%							# for each lek and year
+					dplyr::count() %>%										# how many counts of each type?
+					spread(trapped, n, fill=0) %>%									# each lek and year with just a single column
+					set_colnames(c("id", "date", "n.flush", "n.trap")) %>%	# rename columns
+					mutate(total.counts = n.flush+n.trap) %>%				# convert to proportions
+					mutate(p.flush=n.flush/total.counts, 
+						   p.trap=n.trap/total.counts) %>%
+					select(id, date, p.flush, p.trap)						# extract just lek, date, proportions
+
+# (4)+(5) NOTE ROUNDING!!
+weightedMean <- function(n.fl, n.tr, p.fl, p.tr) {
+	if (is.na(n.fl)) { n.fl <- 0 }		# this removes the NAs but doesn't matter because p will equal 0 for that count
+	if (is.na(n.tr)) { n.tr <- 0 }
+
+	weighted.n <- (n.fl * p.fl) + (n.tr * p.tr)
+	return(round(weighted.n))						# note rounding!!!
+}
+
+max_counts <- adjusted_male_counts %>%
+					group_by(id, date, trapped) %>%				# for each lek, year, and count type
+					top_n(1, adjusted.n.m) %>%					# what's the max adjusted male count?
+					sample_n(1) %>%								# top_n returns ties with no option (#DUMB), so just pick one 
+					select(id, date, trapped, n=adjusted.n.m) %>%
+					spread(trapped, n) %>%
+					set_colnames(c("id", "date", "n.m.flush", "n.m.trap")) %>%
 					ungroup() %>%
-					summarise(mean=mean(f_v_t), sd=sd(f_v_t))
+					left_join(count_numbers, by=c("id","date")) %>%				# join with the trap proportion values
+					mutate(final.n.m = pmap_dbl(list(n.m.flush, n.m.trap,
+													 p.flush, p.trap), 
+												weightedMean))					# calculate final weighted mean NOTE ROUNDED!
 
+# (6) NOTE AGAIN N.M = N.F, no further adjustements right now
 
-counts <- leks %>%
-			mutate(n.tot = as.numeric(n.tot),
-				   n.m = as.numeric(n.m),
-				   n.f = as.numeric(n.f),
-				   date = mdy(date)) %>%
-			group_by(id, year(date)) %>%
-			summarize(mean.tot=mean(n.tot, na.rm=TRUE),
-					  mean.m = mean(n.m, na.rm=TRUE),
-					  mean.f = mean(n.f, na.rm=TRUE))
+# (7) Convert df to matrix
+female.counts <- max_counts %>%
+					select(id, date, final.n.m) %>%
+					spread(date, final.n.m) %>%
+					select(-id) %>%
+					as.matrix()
 
+# (8)
+N.LEKS <- nrow(female.counts)
+N.YEARS <- ncol(female.counts)
 
-# TODO 
-# From winder et al. 2015
-# FOR each sex
-# Find max number of males during trap vs. flush for each lek per year
-# Discount Flush counts to equalize
-# calculate weighted mean given number of visits of each kind
+P.SURVEYED <- rep(0, times=N.YEARS)
+for (t in 1:N.YEARS) {
+	num.surveyed <- length(which(!is.na(female.counts[,t])))
+	P.SURVEYED[t] <- num.surveyed / N.LEKS
+}
 
+COUNTS <- colSums(female.counts, na.rm=TRUE)
