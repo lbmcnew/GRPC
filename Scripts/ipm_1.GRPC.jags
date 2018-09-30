@@ -1,0 +1,72 @@
+model {
+  # -------------------------------
+  # parameter priors
+  # -------------------------------
+  
+  # Second-year (SY) females
+  nsy ~ dnorm(50, 0.01)T(0,)
+  N.SY[1] <- round(nsy)
+
+  # After-second-year (ASY) females
+  nasy ~ dnorm(50, 0.01)T(0,)
+  N.ASY[1] <- round(nasy)
+
+  # Immigrant (Imm) females
+  nimm ~ dnorm(50, 0.01)T(0,)
+  N.Imm[1] <- round(nimm)
+
+  sig.numImms ~ dunif(0, 10)
+  tau.numImms <- pow(sig.numImms, -2)
+
+  m.numImms ~ dunif(0, 100)
+
+  l.m.numImms <- log(m.numImms)
+
+  for (t in 1:(N.YEARS-1)) {
+  	epsilon.numImms[t] ~ dnorm(0, tau.numImms)
+  	log(numImms[t]) <- l.m.numImms + epsilon.numImms[t]
+
+  	theta[t] ~ dnorm(0, 0.01)
+  }
+
+
+  # -------------------------------
+  # derived parameters
+  # -------------------------------
+
+  for (t in 1:(N.YEARS-1)) {
+  	omega[t] <- N.Imm[t+1] / N.tot[t]
+  	lambda[t] <- N.tot[t+1] / N.tot[t]
+  }
+
+  # -------------------------------
+  # processes
+  # -------------------------------
+
+  # State process
+  for (t in 2:N.YEARS) {
+  	Fl.SY[t-1] <- N.SY[t-1] * F.SY
+  	Fl.ASY[t-1] <- N.ASY[t-1] * F.ASY
+  	Fl.Imm[t-1] <- N.Imm[t-1] * F.Imm
+
+  	Fl.mean[t-1] <- Fl.SY[t-1] + Fl.ASY[t-1] + Fl.Imm[t-1]
+
+  	Fl.tot[t-1] ~ dpois(Fl.mean[t-1])
+
+  	SY.Surv[t] ~ dbin(S.SY, N.SY[t-1])
+  	ASY.Surv[t] ~ dbin(S.ASY, N.ASY[t-1])
+  	Imm.Surv[t] ~ dbin(S.Imm, N.Imm[t-1])
+
+  	N.SY[t] ~ dbin(S.J, Fl.tot[t-1])
+  	N.ASY[t] <- SY.Surv[t] + ASY.Surv[t] + Imm.Surv[t]
+
+  	N.Imm[t] ~ dpois(numImms[t-1])
+  }
+
+  # Observation process
+  for (t in 1:N.YEARS) {
+  	N.tot[t] <- N.SY[t] + N.ASY[t] + N.Imm[t]
+
+  	COUNTS[t] ~ dpois(N.tot[t] * P.SURVEYED[t])
+  }
+}

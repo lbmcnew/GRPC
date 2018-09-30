@@ -9,26 +9,24 @@ model {
   a ~ dnorm(0, 0.001)
   b ~ dnorm(1, 0.001)
 
-  mu.theta.lek ~ dnorm(0.02, 0.5)
-
   x.theta.lek ~ dgamma(9.9, 102)
   sigma.theta.lek <- 1/x.theta.lek
 
   for (t in 2:N.YEARS) {
-  	theta.lek[t] ~ dnorm(mu.theta.lek, sigma.theta.lek)
-  	theta.vr[t] <- log(LAMBDA.VR[t])
+  	theta.lek[t] ~ dnorm(0, 0.01)
   }
 
   # -------------------------------
   # process
   # -------------------------------
   for (t in 2:N.YEARS) {
-  	COUNTS[t] ~ dpois(P.SURVEYED[t] * phi[t])
-  	
+
   	log(lambda.lek[t]) <- theta.lek[t]
 
-  	theta.vr[t] ~ dnorm(a + b * theta.lek[t], sigma.lambda)
+    log(phi[t]) <- theta.lek[t] + log(COUNTS[t-1]/P.SURVEYED[t-1])
 
-  	log(phi[t]) <- theta.lek[t] + log(COUNTS[t-1]/P.SURVEYED[t-1])
+    COUNTS[t] ~ dpois(P.SURVEYED[t] * phi[t])
+
+    LOG.LAMBDA.VR[t] ~ dnorm(a + b * theta.lek[t], sigma.lambda)
   }
 }
