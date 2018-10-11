@@ -21,12 +21,12 @@ model {
   # -------------------------------
   for (t in 2:N.YEARS) {
 
-  	log(lambda.lek[t]) <- theta.lek[t]
+  	log(lambda.lek[t-1]) <- theta.lek[t]
 
     log(phi[t]) <- theta.lek[t] + log(COUNTS[t-1]/P.SURVEYED[t-1])
 
     COUNTS[t] ~ dpois(P.SURVEYED[t] * phi[t])
 
-    LOG.LAMBDA.VR[t] ~ dnorm(a + b * theta.lek[t], sigma.lambda)
+    LOG.LAMBDA.VR[t-1] ~ dnorm(a + b * theta.lek[t], sigma.lambda)
   }
 }

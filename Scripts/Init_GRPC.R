@@ -1,15 +1,18 @@
 # setwd("~/GRPC")
-setwd("C://Users//Liam//Documents//GRPC") 
+# setwd("C://Users//Liam//Documents//GRPC") 
+
+# install.packages(c("tidyverse", "lubridate", "magrittr", "jagsUI"))
 
 require(tidyverse)
 require(lubridate)
 require(magrittr)
 require(jagsUI)
 
+
 # --------------------------------
 # Initialize matrix vital rates
 # from "random LTRE LL gpc.r"
-# SM poplation only
+# SM population only
 # --------------------------------
 
 # the original list, from "random LTRE LL gpc.r" :
