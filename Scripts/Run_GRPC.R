@@ -41,7 +41,14 @@ out.params <- c("f.y",
 				"N.i",
 				"N.tot",
 				"omega",
-				"lambda")
+				"lambda",
+				"c.1.size.y",
+				"n.surv.1.y",
+				"c.2.size.y",
+				"n.surv.2.y",
+				"hs",
+				"b.surv.y",
+				"fs")
 
 ipm <- jags(data=jags.data, 
 			inits=jags.inits,
