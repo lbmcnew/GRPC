@@ -62,8 +62,8 @@ model {
 
   # NOTE immigrants are putative 
   f.i <- f.y
-  s.i ~ dnorm(mu.S.Y, tau.S.Y)
-
+  s.i <- s.y
+  
   # -------------------------------
   # derived parameters
   # -------------------------------
