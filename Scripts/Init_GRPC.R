@@ -26,7 +26,7 @@ require(jagsUI)
 tau <- function(se, n) 
 { 
 	sigma = se * sqrt(n)	# standard deviation
-	tau = sigma^-2			# 1 / variance
+	tau = sigma^-2		# 1 / variance
 	return (tau)
 }
 
@@ -137,7 +137,7 @@ mu.S.A        = 0.42
 se.S.A        = 0.002
 n.S.A         = 63
 
-tau.S.A = tau(se.S.Y, n.S.Y)
+tau.S.A = tau(se.S.A, n.S.A)
 
 # # Fecundity of yearlings
 # F.Y = ((N.Prob * C.1.Size * N.Surv.1.Y) +

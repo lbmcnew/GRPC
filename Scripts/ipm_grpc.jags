@@ -28,24 +28,24 @@ model {
   }
 
   # VITAL RATES (see Init_GRPC.R)
-  c.1.size.y ~ dnorm(mu.C.1.SIZE.Y, tau.C.1.SIZE.Y)
-  c.1.size.a ~ dnorm(mu.C.1.SIZE.A, tau.C.1.SIZE.A)
+  c.1.size.y ~ dnorm(mu.C.1.SIZE.Y, tau.C.1.SIZE.Y)T(0,)
+  c.1.size.a ~ dnorm(mu.C.1.SIZE.A, tau.C.1.SIZE.A)T(0,)
 
-  c.2.size.y ~ dnorm(mu.C.2.SIZE.Y, tau.C.2.SIZE.Y)
-  c.2.size.a ~ dnorm(mu.C.2.SIZE.A, tau.C.2.SIZE.A)
+  c.2.size.y ~ dnorm(mu.C.2.SIZE.Y, tau.C.2.SIZE.Y)T(0,)
+  c.2.size.a ~ dnorm(mu.C.2.SIZE.A, tau.C.2.SIZE.A)T(0,)
 
-  n.surv.1.y ~ dnorm(mu.N.SURV.1.Y, tau.N.SURV.1.Y)
-  n.surv.1.a ~ dnorm(mu.N.SURV.1.A, tau.N.SURV.1.A)
+  n.surv.1.y ~ dnorm(mu.N.SURV.1.Y, tau.N.SURV.1.Y)T(0,1)
+  n.surv.1.a ~ dnorm(mu.N.SURV.1.A, tau.N.SURV.1.A)T(0,1)
 
-  n.surv.2.y ~ dnorm(mu.N.SURV.2.Y, tau.N.SURV.2.Y)
-  n.surv.2.a ~ dnorm(mu.N.SURV.2.A, tau.N.SURV.2.A)
+  n.surv.2.y ~ dnorm(mu.N.SURV.2.Y, tau.N.SURV.2.Y)T(0,1)
+  n.surv.2.a ~ dnorm(mu.N.SURV.2.A, tau.N.SURV.2.A)T(0,1)
 
-  hs ~ dnorm(mu.HS, tau.HS)
+  hs ~ dnorm(mu.HS, tau.HS)T(0,1)
 
-  b.surv.y ~ dnorm(mu.B.SURV.Y, tau.B.SURV.Y)
-  b.surv.a ~ dnorm(mu.B.SURV.A, tau.B.SURV.A)
+  b.surv.y ~ dnorm(mu.B.SURV.Y, tau.B.SURV.Y)T(0,1)
+  b.surv.a ~ dnorm(mu.B.SURV.A, tau.B.SURV.A)T(0,1)
 
-  fs ~ dnorm(mu.FS, tau.FS)
+  fs ~ dnorm(mu.FS, tau.FS)T(0,1)
 
   # Fecundity (as per McNew et al. 2012 calculations)
   f.y <- ((N.PROB * c.1.size.y * n.surv.1.y) +
