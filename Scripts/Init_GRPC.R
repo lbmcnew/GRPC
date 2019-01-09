@@ -1,3 +1,8 @@
+# ****************AGE-CLASS BRANCH**************** 
+# where lower-level vital rates are extracted from McNew et al. 2012,
+# 	which includes differentiation between yearling and adult vital rates
+# 	but only covers 3y pre-construction period (2007-2009)
+
 # setwd("~/GRPC")
 # setwd("C://Users//Liam//Documents//GRPC") 
 
@@ -8,91 +13,166 @@ require(lubridate)
 require(magrittr)
 require(jagsUI)
 
-
 # --------------------------------
 # Initialize matrix vital rates
-# from "random LTRE LL gpc.r"
-# SM population only
+# Smoky Hills population only
+# Mean and SE values from methods and Table 1 in McNew et al. 2012
 # --------------------------------
 
-# the original list, from "random LTRE LL gpc.r" :
-# SM_vitalrates<- list(
-#   SMnest = 0.86
-#   SMrenest  =  0.4,
-#   SMtcl1    =  13.4,
-#   SMtcl2    =  10.8,
-#   SMnsurv1y =  0.16,
-#   SMnsurv2y =  0.28,
-#   SMnsurv1a =  0.18,
-#   SMnsurv2a =  0.31,
-#   SMcpere   =  0.83,
-#   SMbsurv  =   0.34,
-#   SMfperc   =  0.51,
-#   SMsj      =  0.38,
-#   SMsy      =  0.34,
-#   SMsa      =  0.42)
+# Conversion from 
+# Standard Error (as in McNew et al. 2012 Table 1)
+# 	to Tau [= 1 / sigma^2]
+# for proper parameterization of dnorm priors in JAGS
+tau <- function(se, n) 
+{ 
+	sigma = se * sqrt(n)	# standard deviation
+	tau = sigma^-2			# 1 / variance
+	return (tau)
+}
 
-# NOTE N.Prob (old: SMnest) and Re.N.Prob (old: SMrenest) are here set to 1
+# NOTE set to 1 following McNew et al. 2012 methods
+N.PROB        = 1		# nesting probability per female
+RE.N.PROB     = 1	    # re-nesting probability per female
 
-N.Prob = 1		# nesting probability per female
-Re.N.Prob = 1	# re-nesting probability per female
+# clutch size (#eggs) per first nest (YEARLINGS)
+mu.C.1.SIZE.Y = 13.1
+se.C.1.SIZE.Y = 0.33
+n.C.1.SIZE.Y  = 33
 
-# N.Prob = 0.86		# nesting probability per female
-# Re.N.Prob = 0.4		# re-nesting probability per female
+tau.C.1.SIZE.Y = tau(se.C.1.SIZE.Y, n.C.1.SIZE.Y) 
 
-C.1.Size = 13.4		# clutch size (#eggs) per first nest
-C.2.Size = 10.8		# clutch size (#eggs) per second nest
+# clutch size (#eggs) per first nest (ADULTS)
+mu.C.1.SIZE.A = 13.7
+se.C.1.SIZE.A = 0.33
+n.C.1.SIZE.A  = 32
 
-N.Surv.1.Y = 0.16 	# nest survival probability for yearlings' first nest
-N.Surv.2.Y = 0.28	# nest survival probability for yearlings' second nest
+tau.C.1.SIZE.A = tau(se.C.1.SIZE.A, n.C.1.SIZE.A)
 
-N.Surv.1.A = 0.18	# nest survival probability for adults' first nest
-N.Surv.2.A = 0.31	# nest survival probability for adults' second nest
+# clutch size (#eggs) per second nest (YEARLINGS)
+mu.C.2.SIZE.Y = 11.2		
+se.C.2.SIZE.Y = 0.56
+n.C.2.SIZE.Y  = 11
 
-B.Surv = 0.34		# brood survival probability
+tau.C.2.SIZE.Y = tau(se.C.2.SIZE.Y, n.C.2.SIZE.Y)
 
-HS = 0.83			# hatching success (Chicks / Eggs)
-FS = 0.51			# fledging success (Fledglings / Chicks)
+# clutch size (#eggs) per second nest (ADULTS)
+mu.C.2.SIZE.A = 10.4		
+se.C.2.SIZE.A = 0.71
+n.C.2.SIZE.A  = 7
 
-S.J = 0.38			# Juvenile Female survival
-S.Y = 0.34			# Yearling Female survival
-S.A = 0.42			# Adult Female survival
+tau.C.2.SIZE.A = tau(se.C.2.SIZE.A, n.C.2.SIZE.A)
 
-# Fecundity of yearlings
-F.Y = ((N.Prob * C.1.Size * N.Surv.1.Y) +
-		(1 - N.Surv.1.Y) *
-		(Re.N.Prob * C.2.Size * N.Surv.2.Y)) *
-	  HS * B.Surv * FS * 0.5
+# nest survival probability for first nest (YEARLINGS)
+mu.N.SURV.1.Y = 0.16 	
+se.N.SURV.1.Y = 0.05
+n.N.SURV.1.Y  = 37
 
-# Fecundity of adults
-F.A = ((N.Prob * C.1.Size * N.Surv.1.A) +
-		 (1 - N.Surv.1.A) *
-		 (Re.N.Prob * C.2.Size * N.Surv.2.A)) *
-	  HS * B.Surv * FS * 0.5
+tau.N.SURV.1.Y = tau(se.N.SURV.1.Y, n.N.SURV.1.Y)
 
-# Translate to matrix to determine eigenvalues->lambda
-values.MAT <- list(F.Y = F.Y,
-					F.A = F.A,
-					S.J = S.J,
-					S.Y = S.Y,
-					S.A = S.A)
+# nest survival probability for first nest (ADULTS)
+mu.N.SURV.1.A = 0.18 	
+se.N.SURV.1.A = 0.05
+n.N.SURV.1.A  = 35
 
-elements.MAT <- expression(F.Y * S.J, F.A * S.J,
-						    S.Y   ,    S.A)
+tau.N.SURV.1.A = tau(se.N.SURV.1.A, n.N.SURV.1.A)
 
-Vrs.MAT <- sapply(elements.MAT, eval, values.MAT, NULL)
+# nest survival probability for second nest (YEARLINGS)
+mu.N.SURV.2.Y = 0.28 	
+se.N.SURV.2.Y = 0.07
+n.N.SURV.2.Y  = 12
 
-A.MAT <- matrix(Vrs.MAT, nrow=2, byrow=TRUE)
+tau.N.SURV.2.Y = tau(se.N.SURV.2.Y, n.N.SURV.2.Y)
 
-evs <- eigen(A.MAT)
+# nest survival probability for second nest (ADULTS)
+mu.N.SURV.2.A = 0.31 	
+se.N.SURV.2.A = 0.08
+n.N.SURV.2.A  = 8
 
-# LAMBDA
-imax <- which.max(evs$values)
-LAMBDA.VR <- Re(evs$values[imax])
+tau.N.SURV.2.A = tau(se.N.SURV.2.A, n.N.SURV.2.A)
 
+# hatching success (Chicks / Eggs)
+mu.HS         = 0.80			
+se.HS         = 0.05
+n.HS          = 28
+
+tau.HS = tau(se.HS, n.HS)
+
+# brood survival probability (YEARLINGS)
+mu.B.SURV.Y   = 0.34		
+se.B.SURV.Y   = 0.07
+n.B.SURV.Y    = 15
+
+tau.B.SURV.Y = tau(se.B.SURV.Y, n.B.SURV.Y)
+
+# brood survival probability (ADULTS)
+mu.B.SURV.A   = 0.34		
+se.B.SURV.A   = 0.07
+n.B.SURV.A    = 20
+
+tau.B.SURV.A = tau(se.B.SURV.A, n.B.SURV.A)
+
+# fledging success (Fledglings / Chicks)
+mu.FS         = 0.48			
+se.FS         = 0.04
+n.FS          = 16
+
+tau.FS = tau(se.FS, n.FS)
+
+# Juvenile Female survival
+mu.S.J        = 0.38
+se.S.J        = 0.002
+n.S.J         = 18
+
+tau.S.J = tau(se.S.J, n.S.J)
+
+# Yearling Female survival
+mu.S.Y        = 0.34			
+se.S.Y        = 0.001
+n.S.Y         = 53
+
+tau.S.Y = tau(se.S.Y, n.S.Y)
+
+# Adult Female survival
+mu.S.A        = 0.42			
+se.S.A        = 0.002
+n.S.A         = 63
+
+tau.S.A = tau(se.S.Y, n.S.Y)
+
+# # Fecundity of yearlings
+# F.Y = ((N.Prob * C.1.Size * N.Surv.1.Y) +
+# 		(1 - N.Surv.1.Y) *
+# 		(Re.N.Prob * C.2.Size * N.Surv.2.Y)) *
+# 	  HS * B.Surv * FS * 0.5
+
+# # Fecundity of adults
+# F.A = ((N.Prob * C.1.Size * N.Surv.1.A) +
+# 		 (1 - N.Surv.1.A) *
+# 		 (Re.N.Prob * C.2.Size * N.Surv.2.A)) *
+# 	  HS * B.Surv * FS * 0.5
+
+# # Translate to matrix to determine eigenvalues->lambda
+# values.MAT <- list(F.Y = F.Y,
+# 					F.A = F.A,
+# 					S.J = S.J,
+# 					S.Y = S.Y,
+# 					S.A = S.A)
+
+# elements.MAT <- expression(F.Y * S.J, F.A * S.J,
+# 						    S.Y   ,    S.A)
+
+# Vrs.MAT <- sapply(elements.MAT, eval, values.MAT, NULL)
+
+# A.MAT <- matrix(Vrs.MAT, nrow=2, byrow=TRUE)
+
+# evs <- eigen(A.MAT)
+
+# # LAMBDA
+# imax <- which.max(evs$values)
+# LAMBDA.VR <- Re(evs$values[imax])
 
 # --------------------------------
-# Initialize m
+# Initialize COUNTS
 # from "UK_lek_metadata_tables.xlsx" original datasheet
 # --------------------------------
 
@@ -186,7 +266,7 @@ weightedMean <- function(n.fl, n.tr, p.fl, p.tr) {
 max_counts <- adjusted_male_counts %>%
 					group_by(id, date, trapped) %>%				# for each lek, year, and count type
 					top_n(1, adjusted.n.m) %>%					# what's the max adjusted male count?
-					sample_n(1) %>%								# top_n returns ties with no option (#DUMB), so just pick one 
+					sample_n(1) %>%								# top_n returns ties with no option (silly imo), so just pick one 
 					select(id, date, trapped, n=adjusted.n.m) %>%
 					spread(trapped, n) %>%
 					set_colnames(c("id", "date", "n.m.flush", "n.m.trap")) %>%

@@ -1,0 +1,106 @@
+model {
+  # -------------------------------
+  # parameter priors
+  # -------------------------------
+  
+  # Second-year (Yearling) females
+  ny ~ dnorm(50, 0.01)T(0,)
+  N.y[1] <- round(ny)
+
+  # After-second-year (Adult, ASY) females
+  na ~ dnorm(50, 0.01)T(0,)
+  N.a[1] <- round(na)
+
+  # Immigrant females
+  ni ~ dnorm(50, 0.01)T(0,)
+  N.i[1] <- round(ni)
+
+  sig.numImms ~ dunif(0, 10)
+  tau.numImms <- pow(sig.numImms, -2)
+
+  m.numImms ~ dunif(0, 100)
+
+  l.m.numImms <- log(m.numImms)
+
+  for (t in 1:(N.YEARS-1)) {
+  	epsilon.numImms[t] ~ dnorm(0, tau.numImms)
+  	log(numImms[t]) <- l.m.numImms + epsilon.numImms[t]
+  }
+
+  # VITAL RATES (see Init_GRPC.R)
+  c.1.size.y ~ dnorm(mu.C.1.SIZE.Y, tau.C.1.SIZE.Y)
+  c.1.size.a ~ dnorm(mu.C.1.SIZE.A, tau.C.1.SIZE.A)
+
+  c.2.size.y ~ dnorm(mu.C.2.SIZE.Y, tau.C.2.SIZE.Y)
+  c.2.size.a ~ dnorm(mu.C.2.SIZE.A, tau.C.2.SIZE.A)
+
+  n.surv.1.y ~ dnorm(mu.N.SURV.1.Y, tau.N.SURV.1.Y)
+  n.surv.1.a ~ dnorm(mu.N.SURV.1.A, tau.N.SURV.1.A)
+
+  n.surv.2.y ~ dnorm(mu.N.SURV.2.Y, tau.N.SURV.2.Y)
+  n.surv.2.a ~ dnorm(mu.N.SURV.2.A, tau.N.SURV.2.A)
+
+  hs ~ dnorm(mu.HS, tau.HS)
+
+  b.surv.y ~ dnorm(mu.B.SURV.Y, tau.B.SURV.Y)
+  b.surv.a ~ dnorm(mu.B.SURV.A, tau.B.SURV.A)
+
+  fs ~ dnorm(mu.FS, tau.FS)
+
+  # Fecundity (as per McNew et al. 2012 calculations)
+  f.y <- ((N.PROB * c.1.size.y * n.surv.1.y) +
+            (1 - n.surv.1.y) * (RE.N.PROB * c.2.size.y * n.surv.2.y)) *
+          hs * b.surv.y * fs * 0.5
+
+  f.a <- ((N.PROB * c.1.size.a * n.surv.1.a) +
+            (1 - n.surv.1.a) * (RE.N.PROB * c.2.size.a * n.surv.2.a)) *
+          hs * b.surv.a * fs * 0.5
+
+  s.j ~ dnorm(mu.S.J, tau.S.J)
+  s.y ~ dnorm(mu.S.Y, tau.S.Y)
+  s.a ~ dnorm(mu.S.A, tau.S.A)
+
+  # NOTE immigrants are putative 
+  f.i <- f.y
+  s.i ~ dnorm(mu.S.Y, tau.S.Y)
+
+  # -------------------------------
+  # derived parameters
+  # -------------------------------
+
+  for (t in 1:(N.YEARS-1)) {
+  	omega[t] <- N.i[t+1] / N.tot[t]
+  	lambda[t] <- N.tot[t+1] / N.tot[t]
+  }
+
+  # -------------------------------
+  # processes
+  # -------------------------------
+
+  # State process
+  for (t in 2:N.YEARS) {
+  	Fl.y[t-1] <- N.y[t-1] * f.y
+  	Fl.a[t-1] <- N.a[t-1] * f.a
+  	Fl.i[t-1] <- N.i[t-1] * f.i
+
+  	Fl.mean[t-1] <- Fl.y[t-1] + Fl.a[t-1] + Fl.i[t-1]
+
+  	Fl.tot[t-1] ~ dpois(Fl.mean[t-1])
+
+  	Y.Surv[t] ~ dbin(s.y, N.y[t-1])
+  	A.Surv[t] ~ dbin(s.a, N.a[t-1])
+  	I.Surv[t] ~ dbin(s.i, N.i[t-1])
+
+  	N.y[t] ~ dbin(s.j, Fl.tot[t-1])
+  	N.a[t] <- Y.Surv[t] + A.Surv[t] + I.Surv[t]
+
+  	N.i[t] ~ dpois(numImms[t-1])
+  }
+
+  # Observation process
+  for (t in 1:N.YEARS) {
+  	N.tot[t] <- N.y[t] + N.a[t] + N.i[t]
+
+  	COUNTS[t] ~ dpois(N.tot[t] * P.SURVEYED[t])
+  }
+}
