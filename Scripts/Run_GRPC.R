@@ -5,8 +5,8 @@ source("Scripts/Init_GRPC.R", echo=TRUE)
 
 numChains <- 3
 numThin <- 20
-numBurn <- 500000
-numIters <- 1000000
+numBurn <- 50000
+numIters <- 100000
 
 jags.data <- list(N.YEARS = N.YEARS,
 				  COUNTS = COUNTS,
