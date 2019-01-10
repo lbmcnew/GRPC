@@ -139,6 +139,10 @@ n.S.A         = 63
 
 tau.S.A = tau(se.S.A, n.S.A)
 
+((N.PROB * mu.C.1.SIZE.Y * mu.N.SURV.1.Y) +
+            (1 - mu.N.SURV.1.Y) * (RE.N.PROB * mu.C.2.SIZE.Y * mu.N.SURV.2.Y)) *
+          mu.HS * mu.B.SURV.Y * mu.FS * 0.5
+
 # # Fecundity of yearlings
 # F.Y = ((N.Prob * C.1.Size * N.Surv.1.Y) +
 # 		(1 - N.Surv.1.Y) *
