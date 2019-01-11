@@ -97,11 +97,11 @@ leks <- read.csv("Data/lek_metadata.csv",
 		 	     "edited",
 		 	     "id",
 		 	     "date",
-		 	     "temp"
-		 	     "wind"
-		 	     "sky"
-		 	     "n.tot"
-		 	     "n.m"
+		 	     "temp",
+		 	     "wind",
+		 	     "sky",
+		 	     "n.tot",
+		 	     "n.m",
 		 	     "n.f"),
 		 colClasses=c("logical", 
 		 	      "character",
@@ -158,7 +158,6 @@ discount <- function(n.tot, n.m)
 adjusted_male_counts <- leks %>%
 				select(trapped, id, date, n.tot, n.m) %>% 
 				mutate(adjusted.n.m = pmap_dbl(list(n.tot, n.m), discount))	# discounts at every row
-
 
 # (3)
 count_numbers <- adjusted_male_counts %>%

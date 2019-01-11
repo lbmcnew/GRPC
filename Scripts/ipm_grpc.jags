@@ -2,17 +2,13 @@ model {
   # -------------------------------
   # parameter priors
   # -------------------------------
-  
-  # Second-year (Yearling) females
-  ny ~ dnorm(50, 0.01)T(0,)
-  N.y[1] <- round(ny)
 
   # After-second-year (Adult, ASY) females
-  na ~ dnorm(50, 0.01)T(0,)
+  na ~ dnorm(150, 0.01)T(0,)
   N.a[1] <- round(na)
 
   # Immigrant females
-  ni ~ dnorm(50, 0.01)T(0,)
+  ni ~ dnorm(150, 0.01)T(0,)
   N.i[1] <- round(ni)
 
   sig.numImms ~ dunif(0, 10)
