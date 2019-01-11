@@ -8,47 +8,33 @@ numThin <- 20
 numBurn <- 50000
 numIters <- 100000
 
-jags.data <- list(N.YEARS = N.YEARS,
-				  COUNTS = COUNTS,
+jags.data <- list(N.YEARS    = N.YEARS,
+				  COUNTS     = COUNTS,
 				  P.SURVEYED = P.SURVEYED,
-				  N.PROB = N.PROB, RE.N.PROB = RE.N.PROB,
-				  mu.C.1.SIZE.Y = mu.C.1.SIZE.Y, tau.C.1.SIZE.Y = tau.C.1.SIZE.Y,
-				  mu.C.1.SIZE.A = mu.C.1.SIZE.A, tau.C.1.SIZE.A = tau.C.1.SIZE.A,
-				  mu.C.2.SIZE.Y = mu.C.2.SIZE.Y, tau.C.2.SIZE.Y = tau.C.2.SIZE.Y,
-				  mu.C.2.SIZE.A = mu.C.2.SIZE.A, tau.C.2.SIZE.A = tau.C.2.SIZE.A,
-				  mu.N.SURV.1.Y = mu.N.SURV.1.Y, tau.N.SURV.1.Y = tau.N.SURV.1.Y,
-				  mu.N.SURV.1.A = mu.N.SURV.1.A, tau.N.SURV.1.A = tau.N.SURV.1.A,
-				  mu.N.SURV.2.Y = mu.N.SURV.2.Y, tau.N.SURV.2.Y = tau.N.SURV.2.Y,
-				  mu.N.SURV.2.A = mu.N.SURV.2.A, tau.N.SURV.2.A = tau.N.SURV.2.A,
-				  mu.HS = mu.HS, tau.HS = tau.HS,
-				  mu.B.SURV.Y = mu.B.SURV.Y, tau.B.SURV.Y = tau.B.SURV.Y,
-				  mu.B.SURV.A = mu.B.SURV.A, tau.B.SURV.A = tau.B.SURV.A,
-				  mu.FS = mu.FS, tau.FS = tau.FS,
-				  mu.S.J = mu.S.J, tau.S.J = tau.S.J,
-				  mu.S.Y = mu.S.Y, tau.S.Y = tau.S.Y,
-				  mu.S.A = mu.S.A, tau.S.A = tau.S.A)
+				  N.PROB     = N.PROB, 
+				  RE.N.PROB  = RE.N.PROB,
+				  C.1.SIZE   = C.1.SIZE,
+				  C.2.SIZE   = C.2.SIZE,
+				  N.SURV.1   = N.SURV.1,
+				  N.SURV.2   = N.SURV.2,
+				  HS.1       = HS.1,
+				  HS.2       = HS.2,
+				  B.SURV     = B.SURV,
+				  FS         = FS,
+				  S.J        = S.J,
+				  S.A        = S.A)
 
 jags.inits <- function() {
 	list(m.numImms=runif(1,0,100),
 		 N.Imm=c(NA,round(runif(N.YEARS-1,0,100))))
 }
 
-out.params <- c("f.y",
-				"f.a",
-				"f.i",
-				"N.y",
+out.params <- c("f",
 				"N.a",
 				"N.i",
 				"N.tot",
 				"omega",
-				"lambda",
-				"c.1.size.y",
-				"n.surv.1.y",
-				"c.2.size.y",
-				"n.surv.2.y",
-				"hs",
-				"b.surv.y",
-				"fs")
+				"lambda")
 
 ipm <- jags(data=jags.data, 
 			inits=jags.inits,

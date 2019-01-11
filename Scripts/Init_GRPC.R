@@ -16,164 +16,76 @@ require(jagsUI)
 # --------------------------------
 # Initialize matrix vital rates
 # Smoky Hills population only
-# Mean and SE values from methods and Table 1 in McNew et al. 2012
+# Mean pre- and post-construction vital rates
+# FROM Table 4.3 Sandercock DE FINAL TECHNICAL REPORT 
 # --------------------------------
 
-# Conversion from 
-# Standard Error (as in McNew et al. 2012 Table 1)
-# 	to Tau [= 1 / sigma^2]
-# for proper parameterization of dnorm priors in JAGS
-tau <- function(se, n) 
-{ 
-	sigma = se * sqrt(n)	# standard deviation
-	tau = sigma^-2		# 1 / variance
-	return (tau)
+# given a mean vital rate value for a pre and post period,
+# return a timeseries for the given three-year periods
+# Pre-construction = 2007, 2008
+# Post-construction = 2009, 2010, 2011
+tsVRS <- function(pre, post) {
+	ts <- c(rep(pre, times=2), rep(post, times=3))
+	return(ts)
 }
 
 # NOTE set to 1 following McNew et al. 2012 methods
 N.PROB        = 1		# nesting probability per female
 RE.N.PROB     = 1	    # re-nesting probability per female
 
-# clutch size (#eggs) per first nest (YEARLINGS)
-mu.C.1.SIZE.Y = 13.1
-se.C.1.SIZE.Y = 0.33
-n.C.1.SIZE.Y  = 33
+# clutch size (#eggs) per first nest
+pre.C.1.SIZE  = 12.3
+post.C.1.SIZE = 12.8
+C.1.SIZE = tsVRS(pre.C.1.SIZE, post.C.1.SIZE)
 
-tau.C.1.SIZE.Y = tau(se.C.1.SIZE.Y, n.C.1.SIZE.Y) 
+# clutch size (#eggs) per second nest
+pre.C.2.SIZE  = 10.7
+post.C.2.SIZE = 10.6
+C.2.SIZE = tsVRS(pre.C.2.SIZE, post.C.2.SIZE)
 
-# clutch size (#eggs) per first nest (ADULTS)
-mu.C.1.SIZE.A = 13.7
-se.C.1.SIZE.A = 0.33
-n.C.1.SIZE.A  = 32
+# nest survival probability for first nest
+pre.N.SURV.1  = 0.25
+post.N.SURV.1 = 0.31
+N.SURV.1 = tsVRS(pre.N.SURV.1, post.N.SURV.1)
 
-tau.C.1.SIZE.A = tau(se.C.1.SIZE.A, n.C.1.SIZE.A)
+# nest survival probability for second nest
+# TODO nest survival vs. 35 day nest success in Table 4.3?
+pre.N.SURV.2  = 0.36
+post.N.SURV.2 = 0.30
+N.SURV.2 = tsVRS(pre.N.SURV.2, post.N.SURV.2)
 
-# clutch size (#eggs) per second nest (YEARLINGS)
-mu.C.2.SIZE.Y = 11.2		
-se.C.2.SIZE.Y = 0.56
-n.C.2.SIZE.Y  = 11
+# hatching success for first nests (Chicks / Eggs)
+pre.HS.1  = 0.81
+post.HS.1 = 0.87
+HS.1 = tsVRS(pre.HS.1, post.HS.1)
 
-tau.C.2.SIZE.Y = tau(se.C.2.SIZE.Y, n.C.2.SIZE.Y)
+# hatching success for second nests (Chicks / Eggs)
+pre.HS.2  = 0.81
+post.HS.2 = 0.78
+HS.2 = tsVRS(pre.HS.2, post.HS.2)
 
-# clutch size (#eggs) per second nest (ADULTS)
-mu.C.2.SIZE.A = 10.4		
-se.C.2.SIZE.A = 0.71
-n.C.2.SIZE.A  = 7
+# brood survival probability (all 25 days)
+pre.B.SURV  = 0.50
+post.B.SURV = 0.38
+B.SURV = tsVRS(pre.B.SURV, post.B.SURV)
 
-tau.C.2.SIZE.A = tau(se.C.2.SIZE.A, n.C.2.SIZE.A)
-
-# nest survival probability for first nest (YEARLINGS)
-mu.N.SURV.1.Y = 0.16 	
-se.N.SURV.1.Y = 0.05
-n.N.SURV.1.Y  = 37
-
-tau.N.SURV.1.Y = tau(se.N.SURV.1.Y, n.N.SURV.1.Y)
-
-# nest survival probability for first nest (ADULTS)
-mu.N.SURV.1.A = 0.18 	
-se.N.SURV.1.A = 0.05
-n.N.SURV.1.A  = 35
-
-tau.N.SURV.1.A = tau(se.N.SURV.1.A, n.N.SURV.1.A)
-
-# nest survival probability for second nest (YEARLINGS)
-mu.N.SURV.2.Y = 0.28 	
-se.N.SURV.2.Y = 0.07
-n.N.SURV.2.Y  = 12
-
-tau.N.SURV.2.Y = tau(se.N.SURV.2.Y, n.N.SURV.2.Y)
-
-# nest survival probability for second nest (ADULTS)
-mu.N.SURV.2.A = 0.31 	
-se.N.SURV.2.A = 0.08
-n.N.SURV.2.A  = 8
-
-tau.N.SURV.2.A = tau(se.N.SURV.2.A, n.N.SURV.2.A)
-
-# hatching success (Chicks / Eggs)
-mu.HS         = 0.80			
-se.HS         = 0.05
-n.HS          = 28
-
-tau.HS = tau(se.HS, n.HS)
-
-# brood survival probability (YEARLINGS)
-mu.B.SURV.Y   = 0.34		
-se.B.SURV.Y   = 0.07
-n.B.SURV.Y    = 15
-
-tau.B.SURV.Y = tau(se.B.SURV.Y, n.B.SURV.Y)
-
-# brood survival probability (ADULTS)
-mu.B.SURV.A   = 0.34		
-se.B.SURV.A   = 0.07
-n.B.SURV.A    = 20
-
-tau.B.SURV.A = tau(se.B.SURV.A, n.B.SURV.A)
-
-# fledging success (Fledglings / Chicks)
-mu.FS         = 0.48			
-se.FS         = 0.04
-n.FS          = 16
-
-tau.FS = tau(se.FS, n.FS)
+# fledging success (Fledglings / Chicks; all 25 days)
+pre.FS  = 0.58
+post.FS = 0.35
+FS = tsVRS(pre.FS, post.FS)
 
 # Juvenile Female survival
-mu.S.J        = 0.38
-se.S.J        = 0.002
-n.S.J         = 18
-
-tau.S.J = tau(se.S.J, n.S.J)
-
-# Yearling Female survival
-mu.S.Y        = 0.34			
-se.S.Y        = 0.001
-n.S.Y         = 53
-
-tau.S.Y = tau(se.S.Y, n.S.Y)
+# NOTE cannot find this value in the DoE report,
+# 	So using McNew et al. 2012 [pre] values for both pre- and post-
+pre.S.J = 0.38
+post.S.J = 0.38
+S.J = tsVRS(pre.S.J, post.S.J)
 
 # Adult Female survival
-mu.S.A        = 0.42			
-se.S.A        = 0.002
-n.S.A         = 63
-
-tau.S.A = tau(se.S.A, n.S.A)
-
-((N.PROB * mu.C.1.SIZE.Y * mu.N.SURV.1.Y) +
-            (1 - mu.N.SURV.1.Y) * (RE.N.PROB * mu.C.2.SIZE.Y * mu.N.SURV.2.Y)) *
-          mu.HS * mu.B.SURV.Y * mu.FS * 0.5
-
-# # Fecundity of yearlings
-# F.Y = ((N.Prob * C.1.Size * N.Surv.1.Y) +
-# 		(1 - N.Surv.1.Y) *
-# 		(Re.N.Prob * C.2.Size * N.Surv.2.Y)) *
-# 	  HS * B.Surv * FS * 0.5
-
-# # Fecundity of adults
-# F.A = ((N.Prob * C.1.Size * N.Surv.1.A) +
-# 		 (1 - N.Surv.1.A) *
-# 		 (Re.N.Prob * C.2.Size * N.Surv.2.A)) *
-# 	  HS * B.Surv * FS * 0.5
-
-# # Translate to matrix to determine eigenvalues->lambda
-# values.MAT <- list(F.Y = F.Y,
-# 					F.A = F.A,
-# 					S.J = S.J,
-# 					S.Y = S.Y,
-# 					S.A = S.A)
-
-# elements.MAT <- expression(F.Y * S.J, F.A * S.J,
-# 						    S.Y   ,    S.A)
-
-# Vrs.MAT <- sapply(elements.MAT, eval, values.MAT, NULL)
-
-# A.MAT <- matrix(Vrs.MAT, nrow=2, byrow=TRUE)
-
-# evs <- eigen(A.MAT)
-
-# # LAMBDA
-# imax <- which.max(evs$values)
-# LAMBDA.VR <- Re(evs$values[imax])
+# FROM cumulative mortality reports (Sandercock 2013, pg. 51)
+pre.S.A  = 0.274
+post.S.A = 0.543
+S.A = tsVRS(pre.S.A, post.S.A) 
 
 # --------------------------------
 # Initialize COUNTS
