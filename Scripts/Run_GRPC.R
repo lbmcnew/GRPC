@@ -9,20 +9,20 @@ numBurn <- 50000
 numIters <- 100000
 
 jags.data <- list(N.YEARS    = N.YEARS,
-				  COUNTS     = COUNTS,
-				  P.SURVEYED = P.SURVEYED,
-				  N.PROB     = N.PROB, 
-				  RE.N.PROB  = RE.N.PROB,
-				  C.1.SIZE   = C.1.SIZE,
-				  C.2.SIZE   = C.2.SIZE,
-				  N.SURV.1   = N.SURV.1,
-				  N.SURV.2   = N.SURV.2,
-				  HS.1       = HS.1,
-				  HS.2       = HS.2,
-				  B.SURV     = B.SURV,
-				  FS         = FS,
-				  S.J        = S.J,
-				  S.A        = S.A)
+		  COUNTS     = COUNTS,
+		  P.SURVEYED = P.SURVEYED,
+		  N.PROB     = N.PROB, 
+		  RE.N.PROB  = RE.N.PROB,
+		  C.1.SIZE   = C.1.SIZE,
+		  C.2.SIZE   = C.2.SIZE,
+		  N.SURV.1   = N.SURV.1,
+		  N.SURV.2   = N.SURV.2,
+		  HS.1       = HS.1,
+		  HS.2       = HS.2,
+		  B.SURV     = B.SURV,
+		  FS         = FS,
+		  S.J        = S.J,
+		  S.A        = S.A)
 
 jags.inits <- function() {
 	list(m.numImms=runif(1,0,100),
@@ -30,21 +30,21 @@ jags.inits <- function() {
 }
 
 out.params <- c("f",
-				"N.a",
-				"N.i",
-				"N.tot",
-				"omega",
-				"lambda")
+		"N.a",
+		"N.i",
+		"N.tot",
+		"omega",
+		"lambda")
 
-ipm <- jags(data=jags.data, 
-			inits=jags.inits,
-			parameters.to.save=out.params,
-			model.file="Scripts//ipm_grpc.jags",
-			n.chains=numChains,
-			n.thin=numThin,
-			n.burnin=numBurn,
-			n.iter=numIters,
-			parallel=TRUE)
+ipm <- jags(data=jags.data,
+	    inits=jags.inits,
+	    parameters.to.save=out.params,
+	    model.file="Scripts//ipm_grpc.jags",
+	    n.chains=numChains,
+	    n.thin=numThin,
+	    n.burnin=numBurn,
+	    n.iter=numIters,
+	    parallel=TRUE)
 
 # summarize ipm output for analyses/visualization
 out <- as.data.frame(ipm$summary)

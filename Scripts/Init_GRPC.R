@@ -30,8 +30,8 @@ tsVRS <- function(pre, post) {
 }
 
 # NOTE set to 1 following McNew et al. 2012 methods
-N.PROB        = 1		# nesting probability per female
-RE.N.PROB     = 1	    # re-nesting probability per female
+N.PROB        = 1 	# nesting probability per female
+RE.N.PROB     = 1	# re-nesting probability per female
 
 # clutch size (#eggs) per first nest
 pre.C.1.SIZE  = 12.3
@@ -93,27 +93,27 @@ S.A = tsVRS(pre.S.A, post.S.A)
 # --------------------------------
 
 leks <- read.csv("Data/lek_metadata.csv",
-				 col.names=c("trapped",
-				 			 "edited",
-				 			 "id",
-				 			 "date",
-				 			 "temp",
-				 			 "wind",
-				 			 "sky",
-				 			 "n.tot",
-				 			 "n.m",
-				 			 "n.f"),
-				 colClasses=c("logical", 
-				 			  "character",
-				 			  "character", 
-				 			  "character",
-				 			  "integer",
-				 			  "integer",
-				 			  "factor",
-				 			  "character",
-				 			  "character",
-				 			  "character"),
-				 stringsAsFactors=FALSE)
+		 col.names=c("trapped",
+		 	     "edited",
+		 	     "id",
+		 	     "date",
+		 	     "temp"
+		 	     "wind"
+		 	     "sky"
+		 	     "n.tot"
+		 	     "n.m"
+		 	     "n.f"),
+		 colClasses=c("logical", 
+		 	      "character",
+		 	      "character", 
+		 	      "character",
+		 	      "integer",
+	 		      "integer",
+		 	      "factor",
+		 	      "character",
+		 	      "character",
+		 	      "character"),
+		 stringsAsFactors=FALSE)
 
 leks$date <- year(mdy(leks$date))
 leks$n.tot[leks$n.tot=="#VALUE!"] <- NA
@@ -137,16 +137,17 @@ leks$n.f <- as.numeric(leks$n.f)
 
 # (1)
 sex_ratio_discount <- leks %>%
-						subset(!is.na(n.f) & !is.na(n.m)) %>%			# take the counts that have m/f differentiation
-						transmute(coeff = n.m / n.tot) %>%				# calculate the male representation
-						summarise(mean = mean(coeff, na.rm=TRUE), 		# remove zero counts (which give a NaN ratio)
-								  sd = sd(coeff, na.rm=TRUE))			# summarize coefficient values
+			subset(!is.na(n.f) & !is.na(n.m)) %>%	   # take the counts that have m/f differentiation
+			transmute(coeff = n.m / n.tot) %>%	   # calculate the male representation
+			summarise(mean = mean(coeff, na.rm=TRUE),  # remove zero counts (which give a NaN ratio)
+			sd = sd(coeff, na.rm=TRUE))		   # summarize coefficient values
 
-discount <- function(n.tot, n.m) {
+discount <- function(n.tot, n.m) 
+{
 	adjustedCount <- n.m
 	coeff <- sex_ratio_discount$mean
 
-	if (is.na(n.m)) {								# if n.m is NOT N/A (i.e., there was a sex count), just keep the count
+	if (is.na(n.m)) {			  # if n.m is NOT N/A (i.e., there was a sex count), just keep the count
 		adjustedCount <- (n.tot * coeff)			
 	} 
 
@@ -155,23 +156,24 @@ discount <- function(n.tot, n.m) {
 
 # (2)
 adjusted_male_counts <- leks %>%
-							select(trapped, id, date, n.tot, n.m) %>% 
-							mutate(adjusted.n.m = pmap_dbl(list(n.tot, n.m), discount))	# discounts at every row
+				select(trapped, id, date, n.tot, n.m) %>% 
+				mutate(adjusted.n.m = pmap_dbl(list(n.tot, n.m), discount))	# discounts at every row
 
 
 # (3)
 count_numbers <- adjusted_male_counts %>%
-					group_by(id, date, trapped) %>%							# for each lek and year
-					dplyr::count() %>%										# how many counts of each type?
-					spread(trapped, n, fill=0) %>%									# each lek and year with just a single column
-					set_colnames(c("id", "date", "n.flush", "n.trap")) %>%	# rename columns
-					mutate(total.counts = n.flush+n.trap) %>%				# convert to proportions
-					mutate(p.flush=n.flush/total.counts, 
-						   p.trap=n.trap/total.counts) %>%
-					select(id, date, p.flush, p.trap)						# extract just lek, date, proportions
+		 	group_by(id, date, trapped) %>%				# for each lek and year
+		 	dplyr::count() %>%					# how many counts of each type?
+		 	spread(trapped, n, fill=0) %>%			 	# each lek and year with just a single column
+		 	set_colnames(c("id", "date", "n.flush", "n.trap")) %>%	# rename columns
+		 	mutate(total.counts = n.flush+n.trap) %>%		# convert to proportions
+		 	mutate(p.flush=n.flush/total.counts, 
+			   p.trap=n.trap/total.counts) %>%
+		 	select(id, date, p.flush, p.trap)			# extract just lek, date, proportions
 
 # (4)+(5) NOTE ROUNDING!!
-weightedMean <- function(n.fl, n.tr, p.fl, p.tr) {
+weightedMean <- function(n.fl, n.tr, p.fl, p.tr) 
+{
 	if (is.na(n.fl)) { n.fl <- 0 }		# this removes the NAs but doesn't matter because p will equal 0 for that count
 	if (is.na(n.tr)) { n.tr <- 0 }
 
@@ -180,26 +182,26 @@ weightedMean <- function(n.fl, n.tr, p.fl, p.tr) {
 }
 
 max_counts <- adjusted_male_counts %>%
-					group_by(id, date, trapped) %>%				# for each lek, year, and count type
-					top_n(1, adjusted.n.m) %>%					# what's the max adjusted male count?
-					sample_n(1) %>%								# top_n returns ties with no option (silly imo), so just pick one 
-					select(id, date, trapped, n=adjusted.n.m) %>%
-					spread(trapped, n) %>%
-					set_colnames(c("id", "date", "n.m.flush", "n.m.trap")) %>%
-					ungroup() %>%
-					left_join(count_numbers, by=c("id","date")) %>%				# join with the trap proportion values
-					mutate(final.n.m = pmap_dbl(list(n.m.flush, n.m.trap,
-													 p.flush, p.trap), 
-												weightedMean))					# calculate final weighted mean NOTE ROUNDED!
+	      	group_by(id, date, trapped) %>%				 	# for each lek, year, and count type
+	      	top_n(1, adjusted.n.m) %>%					# what's the max adjusted male count?
+	      	sample_n(1) %>%							# top_n returns ties with no option (silly imo), so just pick one 
+	      	select(id, date, trapped, n=adjusted.n.m) %>%
+	      	spread(trapped, n) %>%
+	      	set_colnames(c("id", "date", "n.m.flush", "n.m.trap")) %>%
+	      	ungroup() %>%
+	      	left_join(count_numbers, by=c("id","date")) %>%			# join with the trap proportion values
+	      	mutate(final.n.m = pmap_dbl(list(n.m.flush, n.m.trap,
+						 p.flush, p.trap), 
+						 weightedMean))			# calculate final weighted mean NOTE ROUNDED!
 
 # (6) NOTE AGAIN N.M = N.F, no further adjustements right now
 
 # (7) Convert df to matrix
 female.counts <- max_counts %>%
-					select(id, date, final.n.m) %>%
-					spread(date, final.n.m) %>%
-					select(-id) %>%
-					as.matrix()
+		 	select(id, date, final.n.m) %>%
+		 	spread(date, final.n.m) %>%
+		 	select(-id) %>%
+		 	as.matrix()
 
 # (8)
 N.LEKS <- nrow(female.counts)
